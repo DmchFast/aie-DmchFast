@@ -20,6 +20,8 @@ from .viz import (
     plot_missing_matrix,
     plot_histograms_per_column,
     save_top_categories_tables,
+    plot_categorical_bars,
+    plot_numeric_boxplots,
 )
 
 app = typer.Typer(help="Мини-CLI для EDA CSV-файлов")
@@ -71,6 +73,8 @@ def report(
     top_k_categories: int = typer.Option(5, help="Сколько top-значений выводить для категориальных признаков."),
     report_title: str = typer.Option("EDA-отчёт", help="Заголовок отчёта."),
     min_missing_share: float = typer.Option(0.3, help="Порог доли пропусков для проблемных колонок."),
+    #--- Новый параметр для bar-chart ---
+    max_categorical_bars: int = typer.Option(4, help="Максимум категориальных колонок для bar-chart."),
 ) -> None:
     """
     Сгенерировать полный EDA-отчёт:
@@ -115,7 +119,8 @@ def report(
         f.write("## Параметры генерации отчёта\n\n")
         f.write(f"- Макс. кол-во гистограмм: **{max_hist_columns}**\n")
         f.write(f"- Top-k категорий: **{top_k_categories}**\n")
-        f.write(f"- Порог проблемных пропусков: **{min_missing_share:.0%}**\n\n")
+        f.write(f"- Порог проблемных пропусков: **{min_missing_share:.0%}**\n")
+        f.write(f"- Макс. кол-во bar-chart: **{max_categorical_bars}**\n\n")
 
         f.write("## Качество данных (эвристики)\n\n")
         f.write(f"- Оценка качества: **{quality_flags['quality_score']:.2f}**\n")
@@ -176,17 +181,53 @@ def report(
             f.write("Полные таблицы см. в папке `top_categories/`.\n\n")
 
         f.write("## Гистограммы числовых колонок\n\n")
-        f.write("См. файлы `hist_*.png`.\n")
+        f.write("См. файлы `hist_*.png`.\n\n")
+        
+        #--- Добавляем раздел про bar-chart и boxplot ---
+        f.write("## Bar-chart категориальных признаков\n\n")
+        f.write("См. файлы `categorical_*.png`.\n\n")
+        
+        f.write("## Boxplot числовых признаков\n\n")
+        f.write("См. файл `boxplot_numeric.png`.\n")
 
     # 5. Картинки
     plot_histograms_per_column(df, out_root, max_columns=max_hist_columns)
     plot_missing_matrix(df, out_root / "missing_matrix.png")
     plot_correlation_heatmap(df, out_root / "correlation_heatmap.png")
+    #--- Добавляем вызовы новых визуализаций ---
+    plot_categorical_bars(df, out_root, max_columns=max_categorical_bars)
+    plot_numeric_boxplots(df, out_root, max_columns=max_hist_columns)
 
     typer.echo(f"Отчёт сгенерирован в каталоге: {out_root}")
     typer.echo(f"- Основной markdown: {md_path}")
     typer.echo("- Табличные файлы: summary.csv, missing.csv, correlation.csv, top_categories/*.csv")
-    typer.echo("- Графики: hist_*.png, missing_matrix.png, correlation_heatmap.png")
+    typer.echo("- Графики: hist_*.png, missing_matrix.png, correlation_heatmap.png, categorical_*.png, boxplot_numeric.png")
+
+
+@app.command()
+def head(
+    path: str = typer.Argument(..., help="Путь к CSV-файлу."),
+    n: int = typer.Option(5, help="Количество строк для вывода."),
+    sep: str = typer.Option(",", help="Разделитель в CSV."),
+    encoding: str = typer.Option("utf-8", help="Кодировка файла."),
+) -> None:
+    """
+    Вывести первые N строк CSV-файла.
+    """
+    df = _load_csv(Path(path), sep=sep, encoding=encoding)
+    
+    if df.empty:
+        typer.echo("Файл пуст.")
+        return
+    
+    typer.echo(f"Первые {min(n, len(df))} строк из {len(df)}:")
+    typer.echo("=" * 50)
+    
+    # Выводим датафрейм с ограничением по строкам
+    typer.echo(df.head(n).to_string(index=False))
+    
+    typer.echo("=" * 50)
+    typer.echo(f"Всего строк: {len(df)}, колонок: {len(df.columns)}")
 
 
 if __name__ == "__main__":
