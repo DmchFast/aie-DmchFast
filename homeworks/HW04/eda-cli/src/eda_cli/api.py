@@ -1,6 +1,3 @@
-"""
-HTTP API для EDA-сервиса поверх ядра eda-cli.
-"""
 import time
 import logging
 from typing import Dict, Any
@@ -28,9 +25,9 @@ app = FastAPI(
 )
 
 
-# --- Модели Pydantic ---
+# Модели Pydantic
+#Модель запроса для оценки качества по метрикам
 class QualityRequest(BaseModel):
-    """Модель запроса для оценки качества по метрикам"""
     n_rows: int
     n_cols: int
     max_missing_share: float
@@ -38,8 +35,8 @@ class QualityRequest(BaseModel):
     has_high_cardinality_categoricals: bool = False
 
 
+# Модель ответа для оценки качества
 class QualityResponse(BaseModel):
-    """Модель ответа для оценки качества"""
     ok_for_model: bool
     quality_score: float
     latency_ms: float
@@ -48,7 +45,7 @@ class QualityResponse(BaseModel):
     n_cols: int
 
 
-# --- Вспомогательные функции ---
+# Вспомогательные функции
 def read_csv_file(file: UploadFile) -> pd.DataFrame:
     """Безопасное чтение CSV файла"""
     try:
@@ -63,34 +60,20 @@ def read_csv_file(file: UploadFile) -> pd.DataFrame:
         except UnicodeDecodeError:
             # Пробуем альтернативную кодировку
             df = pd.read_csv(pd.io.common.BytesIO(contents), encoding='latin1')
+        except Exception as read_error:
+            raise HTTPException(status_code=400, detail=f"Ошибка чтения CSV: {str(read_error)}")
+        
+        if df.empty:
+            raise HTTPException(status_code=400, detail="Файл не содержит данных (пустой DataFrame)")
         
         return df
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Ошибка чтения CSV: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Ошибка обработки файла: {str(e)}")
 
 
-def compute_quality_from_df(df: pd.DataFrame) -> Dict[str, Any]:
-    """Вычисление качества данных из DataFrame"""
-    # Получаем сводку и таблицу пропусков
-    summary = summarize_dataset(df)
-    missing_df = missing_table(df)
-    
-    # Вычисляем флаги качества (используем вашу функцию из core.py)
-    flags = compute_quality_flags(summary, missing_df)
-    
-    # Добавляем информацию о размере данных
-    result = {
-        "n_rows": df.shape[0],
-        "n_cols": df.shape[1],
-        "flags": flags,
-        "quality_score": flags.get("quality_score", 0.0),
-        "ok_for_model": flags.get("quality_score", 0.0) >= 0.5  # Порог 0.5
-    }
-    
-    return result
-
-
-# --- Эндпоинты ---
+# Эндпоинты
 @app.get("/health", tags=["Здоровье"])
 async def health_check():
     """Проверка работоспособности сервиса"""
@@ -109,7 +92,7 @@ async def assess_quality(request: QualityRequest):
     """
     start_time = time.time()
     
-    # Используем упрощенную логику для оценки по метрикам
+    # Логику для оценки по метрикам
     flags = {
         "too_few_rows": request.n_rows < 100,
         "too_many_columns": request.n_cols > 100,
@@ -118,7 +101,7 @@ async def assess_quality(request: QualityRequest):
         "has_high_cardinality_categoricals": request.has_high_cardinality_categoricals,
     }
     
-    # Расчет качества (аналогично вашей логике в core.py)
+    # Расчет качества
     score = 1.0
     score -= request.max_missing_share
     
@@ -154,19 +137,37 @@ async def assess_quality_from_csv(file: UploadFile = File(...)):
     start_time = time.time()
     
     try:
-        # Читаем CSV файл
         df = read_csv_file(file)
         
-        # Вычисляем качество
-        quality_result = compute_quality_from_df(df)
+        # EDA-ЯДРО
+        summary = summarize_dataset(df)
+        missing_df = missing_table(df)
+        flags = compute_quality_flags(summary, missing_df)
         
-        # Добавляем время выполнения
-        quality_result["latency_ms"] = (time.time() - start_time) * 1000
+        quality_score = flags.get("quality_score", 0.0)
+        response = {
+            "ok_for_model": quality_score >= 0.5,
+            "quality_score": quality_score,
+            "latency_ms": (time.time() - start_time) * 1000,
+            "flags": {
+                "too_few_rows": flags.get("too_few_rows", False),
+                "too_many_columns": flags.get("too_many_columns", False),
+                "too_many_missing": flags.get("too_many_missing", False),
+                "has_constant_columns": flags.get("has_constant_columns", False),
+                "has_high_cardinality_categoricals": flags.get("has_high_cardinality_categoricals", False),
+                "constant_columns": flags.get("constant_columns", []),
+                "high_cardinality_columns": flags.get("high_cardinality_columns", []),
+                "max_missing_share": flags.get("max_missing_share", 0.0),
+            },
+            "n_rows": df.shape[0],
+            "n_cols": df.shape[1],
+            "filename": file.filename
+        }
         
-        return quality_result
+        return response
         
-    except HTTPException:
-        raise
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.error(f"Ошибка при оценке качества: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
@@ -183,17 +184,15 @@ async def get_quality_flags_from_csv(file: UploadFile = File(...)):
     start_time = time.time()
     
     try:
-        # Читаем CSV файл
+
         df = read_csv_file(file)
         
-        # Получаем сводку и таблицу пропусков
+        # EDA-ЯДРО
         summary = summarize_dataset(df)
         missing_df = missing_table(df)
-        
-        # Вычисляем флаги качества (используем вашу функцию из core.py)
         flags = compute_quality_flags(summary, missing_df)
         
-        # Формируем ответ с акцентом на флаги
+        # Ответ с флагами
         response = {
             "flags": {
                 "too_few_rows": flags.get("too_few_rows", False),
@@ -205,6 +204,7 @@ async def get_quality_flags_from_csv(file: UploadFile = File(...)):
                 "high_cardinality_columns": flags.get("high_cardinality_columns", []),
                 "high_cardinality_threshold": flags.get("high_cardinality_threshold", 100),
                 "max_missing_share": flags.get("max_missing_share", 0.0),
+                "quality_score": flags.get("quality_score", 0.0),
             },
             "latency_ms": (time.time() - start_time) * 1000,
             "dataset_info": {
@@ -216,8 +216,8 @@ async def get_quality_flags_from_csv(file: UploadFile = File(...)):
         
         return response
         
-    except HTTPException:
-        raise
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.error(f"Ошибка при получении флагов качества: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
