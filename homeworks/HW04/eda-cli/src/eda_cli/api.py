@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 import pandas as pd
 from pydantic import BaseModel
 
-# Импортируем функции из вашего core.py
+# Импорт из core.py
 from eda_cli.core import (
     summarize_dataset,
     missing_table,
@@ -45,26 +45,33 @@ class QualityResponse(BaseModel):
     n_cols: int
 
 
-# Вспомогательные функции
+# Вспомогательные функции 
 def read_csv_file(file: UploadFile) -> pd.DataFrame:
-    """Безопасное чтение CSV файла"""
+    #Безопасное чтение CSV файла
     try:
-        # Читаем содержимое файла
+        # Проверка типа файла
+        if not file.filename or not file.filename.lower().endswith('.csv'):
+            raise HTTPException(status_code=400, detail="Файл должен быть в формате CSV")
+        
+        # Cодержимое файла
         contents = file.file.read()
         if len(contents) == 0:
             raise HTTPException(status_code=400, detail="Файл пустой")
         
-        # Пробуем прочитать CSV
+        # Попытка прочтения csv
         try:
             df = pd.read_csv(pd.io.common.BytesIO(contents))
+        except pd.errors.EmptyDataError:
+            raise HTTPException(status_code=400, detail="CSV файл пуст или не содержит данных")
         except UnicodeDecodeError:
-            # Пробуем альтернативную кодировку
-            df = pd.read_csv(pd.io.common.BytesIO(contents), encoding='latin1')
+            try:
+                df = pd.read_csv(pd.io.common.BytesIO(contents), encoding='latin1')
+            except pd.errors.EmptyDataError:
+                raise HTTPException(status_code=400, detail="CSV файл пуст или не содержит данных")
+            except Exception as read_error:
+                raise HTTPException(status_code=400, detail=f"Ошибка чтения CSV: {str(read_error)}")
         except Exception as read_error:
             raise HTTPException(status_code=400, detail=f"Ошибка чтения CSV: {str(read_error)}")
-        
-        if df.empty:
-            raise HTTPException(status_code=400, detail="Файл не содержит данных (пустой DataFrame)")
         
         return df
     except HTTPException:
@@ -76,7 +83,7 @@ def read_csv_file(file: UploadFile) -> pd.DataFrame:
 # Эндпоинты
 @app.get("/health", tags=["Здоровье"])
 async def health_check():
-    """Проверка работоспособности сервиса"""
+    #Проверка работоспособности сервиса
     return {
         "status": "ok",
         "timestamp": time.time(),
@@ -87,12 +94,11 @@ async def health_check():
 
 @app.post("/quality", response_model=QualityResponse, tags=["Качество"])
 async def assess_quality(request: QualityRequest):
-    """
-    Оценка качества данных на основе переданных метрик
-    """
+    #Оценка качества данных на основе переданных метрик
+
     start_time = time.time()
     
-    # Логику для оценки по метрикам
+    # Логика для оценки по метрикам
     flags = {
         "too_few_rows": request.n_rows < 100,
         "too_many_columns": request.n_cols > 100,
@@ -101,7 +107,7 @@ async def assess_quality(request: QualityRequest):
         "has_high_cardinality_categoricals": request.has_high_cardinality_categoricals,
     }
     
-    # Расчет качества
+    # Расчёт качества
     score = 1.0
     score -= request.max_missing_share
     
@@ -131,13 +137,25 @@ async def assess_quality(request: QualityRequest):
 
 @app.post("/quality-from-csv", tags=["Качество"])
 async def assess_quality_from_csv(file: UploadFile = File(...)):
-    """
-    Оценка качества данных из загруженного CSV файла
-    """
+    # Оценка качества данных из загруженного csv
     start_time = time.time()
+    
+    # Проверка типа файла
+    if not file.filename.lower().endswith('.csv'):
+        raise HTTPException(
+            status_code=400,
+            detail="Файл должен быть в формате csv"
+        )
     
     try:
         df = read_csv_file(file)
+        
+        # Проверка на пустой DataFrame
+        if df.empty:
+            raise HTTPException(
+                status_code=400,
+                detail="csv файл пуст или не содержит данных"
+            )
         
         # EDA-ЯДРО
         summary = summarize_dataset(df)
@@ -166,8 +184,14 @@ async def assess_quality_from_csv(file: UploadFile = File(...)):
         
         return response
         
-    except HTTPException as http_exc:
-        raise http_exc
+    except pd.errors.EmptyDataError:
+        raise HTTPException(
+            status_code=400,
+            detail="csv файл пуст или не содержит данных"
+        )
+    except HTTPException:
+        # Пробрасываем HTTPException дальше
+        raise
     except Exception as e:
         logger.error(f"Ошибка при оценке качества: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
@@ -176,16 +200,28 @@ async def assess_quality_from_csv(file: UploadFile = File(...)):
 @app.post("/quality-flags-from-csv", tags=["Качество"])
 async def get_quality_flags_from_csv(file: UploadFile = File(...)):
     """
-    Получение полного набора флагов качества из CSV файла
+    Получение полного набора флагов качества из csv файла
     Включает эвристики из HW03:
-    1. Константные колонки
-    2. Категориальные колонки с высокой кардинальностью
+    Константные колонки и категориальные колонки с высокой кардинальностью
     """
     start_time = time.time()
     
+    # Проверка типа файла
+    if not file.filename.lower().endswith('.csv'):
+        raise HTTPException(
+            status_code=400,
+            detail="Файл должен быть в формате csv"
+        )
+    
     try:
-
         df = read_csv_file(file)
+        
+        # Проверка на пустой DataFrame
+        if df.empty:
+            raise HTTPException(
+                status_code=400,
+                detail="csv файл пуст или не содержит данных"
+            )
         
         # EDA-ЯДРО
         summary = summarize_dataset(df)
@@ -216,8 +252,13 @@ async def get_quality_flags_from_csv(file: UploadFile = File(...)):
         
         return response
         
-    except HTTPException as http_exc:
-        raise http_exc
+    except pd.errors.EmptyDataError:
+        raise HTTPException(
+            status_code=400,
+            detail="csv файл пуст или не содержит данных"
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Ошибка при получении флагов качества: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
