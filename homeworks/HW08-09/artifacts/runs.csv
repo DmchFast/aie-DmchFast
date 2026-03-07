@@ -1,0 +1,8 @@
+﻿experiment_id,dataset,seed,model_summary,optimizer,lr,momentum,weight_decay,dropout,batchnorm,epochs_trained,best_val_accuracy,best_val_loss
+E1,EMNIST,42,"MLP с 2 скрытыми слоями (512, 256 нейронов), ReLU, без регуляризации",Adam,0.001,0.0,0.0,0.0,False,15,0.8466755319148936,0.4984764853267805
+E2,EMNIST,42,"MLP с 2 скрытыми слоями (512, 256 нейронов), ReLU, с Dropout=0.3",Adam,0.001,0.0,0.0,0.3,False,15,0.8470744680851063,0.4642279789802876
+E3,EMNIST,42,"MLP с 2 скрытыми слоями (512, 256 нейронов), ReLU, с BatchNorm",Adam,0.001,0.0,0.0,0.0,True,15,0.8527925531914894,0.44624373473174184
+E4,EMNIST,42,"MLP с 2 скрытыми слоями (512, 256 нейронов), ReLU, с BatchNorm и EarlyStopping",Adam,0.001,0.0,0.0,0.0,True,10,0.8525709219858156,0.439888315674261
+O1,EMNIST,42,"MLP с 2 скрытыми слоями (512, 256 нейронов), ReLU, с BatchNorm",Adam,0.1,0.0,0.0,0.0,True,8,0.8090868794326241,0.6134684861974513
+O2,EMNIST,42,"MLP с 2 скрытыми слоями (512, 256 нейронов), ReLU, с BatchNorm",Adam,1e-05,0.0,0.0,0.0,True,8,0.7359042553191489,1.1066104721515737
+O3,EMNIST,42,"MLP с 2 скрытыми слоями (512, 256 нейронов), ReLU, с BatchNorm",SGD,0.01,0.9,0.0001,0.0,True,15,0.8492464539007092,0.4481460835916776
