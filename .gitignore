@@ -55,3 +55,6 @@ logs/
 *.tmp
 *.bak
 *.old
+
+# HW10-11 data
+homeworks/HW10-11/data/

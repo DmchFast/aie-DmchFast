@@ -1,0 +1,7 @@
+﻿experiment_id,task,dataset,seed,model_summary,optimizer,lr,epochs_trained,best_val_accuracy,test_accuracy,precision,recall,mean_iou,notes
+C1,classification,STL10,47,SimpleCNN,Adam,0.001,10,31.9,52.475,,,,Без аугментаций
+C2,classification,STL10,47,SimpleCNN,Adam,0.001,10,43.1,45.1375,,,,С аугментациями
+C3,classification,STL10,47,ResNet18 (head-only),Adam,0.01,10,99.0,94.3375,,,,"Pretrained, backbone заморожен"
+C4,classification,STL10,47,ResNet18 (finetune),Adam,0.001,10,100.0,93.8125,,,,"Pretrained, layer4 + fc обучаются"
+V1,detection,PascalVOC,47,FasterRCNN_ResNet50_FPN,,,,,,0.013691058293294783,0.040793057579020714,0.8365156,score_threshold=0.3
+V2,detection,PascalVOC,47,FasterRCNN_ResNet50_FPN,,,,,,0.02551388388027407,0.035852283524418826,0.85207665,score_threshold=0.7
