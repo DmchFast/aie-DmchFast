@@ -5,6 +5,7 @@
   "epochs": 10,
   "lr": 0.001,
   "best_val_accuracy": 100.0,
-  "test_accuracy": 93.8125,
-  "model_type": "ResNet18"
+  "test_accuracy": 94.125,
+  "model_type": "ResNet18",
+  "transforms": "Compose(\n    Resize(size=(224, 224), interpolation=bilinear, max_size=None, antialias=True)\n    ToTensor()\n    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])\n)"
 }
