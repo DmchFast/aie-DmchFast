@@ -1,0 +1,6 @@
+question,answer,retrieved_sources
+What library is used for vector search?,FAISS is a library for efficient vector similarity search and clustering.,99902;5385;10584
+When was Qt 6.5 released?,Qt 6.5 introduced new features to Qt Quick. Integration with C++ remained stable.,99901;13510;12868
+Who wrote Harry Potter?,"Arthur Conan Doyle's Sherlock Holmes stories. Modern writers pervasively influenced by the city include Peter Ackroyd, author of a ""biography"" of London, and Iain Sinclair, who writes in the genre of psychogeography.",10111;15550;18653
+What's the weather like in Moscow today?,"moderately wet. Summer days are usually warm and pleasant with average temperatures hovering between 15 and 25 °C (59 and 77 °F), and a fair amount of sunshine. Each year, however, there are a few days where the temperature rises above 32 °C (90 °F). Some",14174;1672;3761
+How do I install FAISS on Windows?,is not as well supported outside of Windows operating systems.,12787;1886;11775

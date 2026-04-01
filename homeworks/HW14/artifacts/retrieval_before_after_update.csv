@@ -1,0 +1,4 @@
+query,before_retrieved_sources,after_retrieved_sources,changed
+What's new in Qt 6.5?,13510;3375;6720,99901;13510;3375,Yes
+FAISS library purpose,8524;14230;14230,99902;8524;14230,Yes
+Sentence Transformers usage,3519;17370;8583,99903;3519;17370,Yes
