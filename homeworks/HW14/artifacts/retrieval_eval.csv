@@ -1,4 +1,4 @@
-query,expected_source,retrieved_sources,hit_at_5,rank_of_first_relevant
+query,expected_source,retrieved_sources,hit_at_k,rank_of_first_relevant
 Capital of USA,"capital, United States",16129;3288;602;3272;709,1,1
 Super Bowl XXXIV MVP,"Kurt Warner, MVP",3592;690;2788;10016;108,1,1
 Sherlock Holmes author,"Conan Doyle, author",10111;2921;2921;5489;10111,1,1
