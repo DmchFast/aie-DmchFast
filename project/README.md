@@ -148,7 +148,7 @@ curl http://127.0.0.1:8000/health
 
 Датасет: Intel Image Classification (Kaggle).  
 Скачать и распаковать в `data/raw/` (структура должна содержать `seg_train/`, `seg_test/`, `seg_pred/`).
-Подробности в `data/DATA.md`.
+Подробности в `data/README.md`.
 
 ---
 
