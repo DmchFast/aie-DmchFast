@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 class ImageClassifier:
     def __init__(self, model_path=MODEL_PATH):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model_path = model_path
         self.classes = load_classes()
         self.num_classes = len(self.classes)
         self.transform = transforms.Compose([
