@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+
+# Virtual environments
+.env
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Artifacts
+artifacts/resnet18_frozen.pth
+
+# Project specifics
+data/
+mlruns/
+notebooks/
+tests/
+self-checklist.md
+report.md
