@@ -1,0 +1,4 @@
+model:
+  name: resnet18
+  input_size: 224
+classes: ["buildings", "forest", "glacier", "mountain", "sea", "street"]
