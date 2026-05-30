@@ -23,7 +23,10 @@ app = FastAPI(title="Image Classifier", lifespan=lifespan)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "model_loaded": classifier is not None,
+    }
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
